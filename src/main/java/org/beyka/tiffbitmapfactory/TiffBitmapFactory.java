@@ -115,6 +115,19 @@ public class TiffBitmapFactory {
     }
 
     /**
+     * Decode path to bitmap with default options. If the specified file name is null,
+     * or cannot be decoded into a bitmap, the function returns null.
+     * @param bytes - file to decode as byte array
+     * @return The decoded bitmap, or null if the image data could not be
+     *         decoded
+     *
+     * @throws org.beyka.tiffbitmapfactory.exceptions.ReadTiffException when error occure while decoding image
+     */
+    public static Bitmap decodePath(byte[] bytes) throws ReadTiffException {
+        return nativeDecodeBytes(bytes, new Options());
+    }
+
+    /**
      * Decode path to bitmap with specified options. If the specified file name is null,
      * or cannot be decoded into a bitmap, the function returns null.
      * @param path - file to decode
@@ -130,6 +143,23 @@ public class TiffBitmapFactory {
     public static Bitmap decodePath(String path, Options options) throws NoSuchFileException, ReadTiffException, NotEnoughtMemoryException {
         options.inPreferredConfig = ImageConfig.ARGB_8888;
         return nativeDecodePath(path, options);
+    }
+
+    /**
+     * Decode path to bitmap with specified options. If
+     * cannot be decoded into a bitmap, the function returns null.
+     * @param bytes - file to decode as byte array
+     * @param options - options for decoding
+     * @return The decoded bitmap, or null if the image data could not be
+     *         decoded, or, if options is non-null, if options requested only the
+     *         size be returned (in {@link Options#outWidth}, {@link Options#outHeight}, {@link Options#outDirectoryCount})
+     *
+     * @throws org.beyka.tiffbitmapfactory.exceptions.ReadTiffException when error occure while decoding image
+     * @throws org.beyka.tiffbitmapfactory.exceptions.NotEnoughtMemoryException when {@link Options#inAvailableMemory} not enought to decode image
+     */
+    public static Bitmap decodeBytes(byte[] bytes, Options options) throws ReadTiffException, NotEnoughtMemoryException {
+        options.inPreferredConfig = ImageConfig.ARGB_8888;
+        return nativeDecodeBytes(bytes, options);
     }
 
     private static synchronized native Bitmap nativeDecodePath(String path, Options options);
