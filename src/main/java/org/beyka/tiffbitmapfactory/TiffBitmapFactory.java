@@ -14,7 +14,7 @@ import java.io.File;
 public class TiffBitmapFactory {
 
     static {
-        System.loadLibrary("tiff");
+//        System.loadLibrary("tiff");
         System.loadLibrary("tifffactory");
     }
 
