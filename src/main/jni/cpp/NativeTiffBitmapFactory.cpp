@@ -100,8 +100,14 @@ jobject Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecode
     MemoryTiff* memtif = NULL;
     jbyte *tiffData = NULL;
     if (path == NULL && bytes != NULL) {
+        LOGI("Using bytes to decode Tiff");
         // Use memory branch only if requirements are met
         tiffData = env->GetByteArrayElements(bytes, NULL);
+        if (tiffData == NULL) {
+            LOGE("Could not Get Byte Array Elements");
+            env->ThrowNew(env->FindClass("java/lang/RuntimeException"), "GetByteArrayElements returned NULL");
+            return NULL;
+        }
         jint len = env->GetArrayLength(bytes);
 
         memtif = new MemoryTiff((u_char*)tiffData, len);
@@ -113,6 +119,11 @@ jobject Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecode
                                MemTiffSizeProc,
                                MemTiffMapProc,
                                MemTiffUnmapProc);
+        if (tiffData == NULL) {
+            env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), "TIFFClientOpen returned NULL");
+            return NULL;
+        }
+
         LOGIS("nativeTiffOpen", "From memory bytes");
     } else {
         const char *strPath = NULL;
