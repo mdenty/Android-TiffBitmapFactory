@@ -1,31 +1,81 @@
-apply plugin: 'com.android.library'
+apply plugin: 'com.android.model.library'
 
-android {
-    compileSdkVersion 22
-    buildToolsVersion "23.0.0"
+model {
+    android {
+        compileSdkVersion = 23
+        buildToolsVersion = "23.0.2"
 
-    defaultConfig {
-        minSdkVersion 8
-        targetSdkVersion 22
-        versionCode 7
-        versionName "0.7"
+        ndk {
+            moduleName = "tifffactory"
+            toolchain "clang"
+            platformVersion = "16"
+            CFlags.add("-I" + file("src/main/jni/libtiff"))
+            cppFlags.add("-I" + file("src/main/jni/libtiff"))
+            ldLibs.add("z")
+            ldLibs.add("log")
+            ldLibs.add("jnigraphics")
+            stl 'gnustl_shared'
+
+        }
+
+        defaultConfig {
+            minSdkVersion.apiLevel = 8
+            targetSdkVersion.apiLevel = 23
+//            versionCode = 7
+            versionName = "0.7"
+        }
+        buildTypes {
+            release {
+                minifyEnabled = false
+                proguardFiles.add(file('proguard-android.txt'))
+            }
+        }
+
+
+        sources {
+            main {
+                jni {
+                    source {
+                        srcDirs = ["src/main/jni/libtiff", "src/main/jni/jpeg", "src/main/jni/cpp"]
+                    }
+                }
+            }
+        }
+//        sourceSets.main {
+//            jni.srcDirs = []
+//            jniLibs.srcDir 'src/main/libs'
+//        }
     }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
+    android.abis {
+        create("x86") {
+            cppFlags.add('-DENABLE_SSSE3')
+//            ldLibs.add('')
+//            ldFlags('')
+        }
+        create("armeabi-v7a") {
+            cppFlags.addAll(["-mhard-float", "-D_NDK_MATH_NO_SOFTFP=1", "-mfloat-abi=hard"])
+            ldLibs.add("m_hard")
+            ldFlags.add("-Wl,--no-warn-mismatch")
         }
     }
 
-    sourceSets.main {
-        jni.srcDirs = []
-        jniLibs.srcDir 'src/main/libs'
+    android.lintOptions {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
+
 }
 
-android {
-    lintOptions {
-        abortOnError false
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle-experimental:0.8.0-alpha2'
+
+//        classpath 'com.android.tools.build:gradle:2.1.0'
     }
 }
 
