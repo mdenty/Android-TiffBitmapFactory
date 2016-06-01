@@ -1,3 +1,5 @@
+#include "MemoryTiff.h"
+
 using namespace std;
 
 #ifdef __cplusplus
@@ -21,10 +23,24 @@ jobject preferedConfig;
 jboolean invertRedAndBlue = false;
 int availableMemory = -1;
 
-JNIEXPORT jobject
+jobject Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecode
+        (JNIEnv *env, jclass clazz, jstring path, jbyteArray bytes, jobject options);
 
+
+JNIEXPORT jobject
 JNICALL Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecodePath
         (JNIEnv *env, jclass clazz, jstring path, jobject options) {
+    return Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecode(env, clazz, path, NULL, options);
+}
+
+JNIEXPORT jobject
+JNICALL Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecodeBytes
+    (JNIEnv *env, jclass clazz, jbyteArray bytes, jobject options) {
+    return Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecode(env, clazz, NULL, bytes, options);
+}
+
+jobject Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecode
+        (JNIEnv *env, jclass clazz, jstring path, jbyteArray bytes, jobject options) {
 
     //Drop some global variables
     origorientation = 0;
@@ -55,10 +71,10 @@ JNICALL Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecodePath
                                                               "I");
     jint inDirectoryNumber = env->GetIntField(options, gOptions_DirectoryCountFieldID);
     LOGII("param directoryCount", inDirectoryNumber);
-    
+
     jfieldID gOptions_AvailableMemoryFieldID = env->GetFieldID(jBitmapOptionsClass,
-                                                              "inAvailableMemory",
-                                                              "I");
+                                                               "inAvailableMemory",
+                                                               "I");
     availableMemory = env->GetIntField(options, gOptions_AvailableMemoryFieldID);
 
     jfieldID gOptions_PreferedConfigFieldID = env->GetFieldID(jBitmapOptionsClass,
@@ -81,16 +97,35 @@ JNICALL Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecodePath
     if (inDirectoryNumber < 0) inDirectoryNumber = 0;
 
     //Open image and read data;
-    const char *strPath = NULL;
-    strPath = env->GetStringUTFChars(path, 0);
-    LOGIS("nativeTiffOpen", strPath);
+    MemoryTiff* memtif = NULL;
+    jbyte *tiffData = NULL;
+    if (path == NULL && bytes != NULL) {
+        // Use memory branch only if requirements are met
+        tiffData = env->GetByteArrayElements(bytes, NULL);
+        jint len = env->GetArrayLength(bytes);
 
-    image = TIFFOpen(strPath, "r");
-    env->ReleaseStringUTFChars(path, strPath);
-    if (image == NULL) {
-        throw_no_such_file_exception(env, path);
-        LOGES("Can\'t open bitmap", strPath);
-        return NULL;
+        memtif = new MemoryTiff((u_char*)tiffData, len);
+        image = TIFFClientOpen("MEMTIFF", "r", (thandle_t) memtif,
+                               MemTiffReadProc,
+                               MemTiffWriteProc,
+                               MemTiffSeekProc,
+                               MemTiffCloseProc,
+                               MemTiffSizeProc,
+                               MemTiffMapProc,
+                               MemTiffUnmapProc);
+        LOGIS("nativeTiffOpen", "From memory bytes");
+    } else {
+        const char *strPath = NULL;
+        strPath = env->GetStringUTFChars(path, 0);
+        LOGIS("nativeTiffOpen", strPath);
+
+        image = TIFFOpen(strPath, "r");
+        env->ReleaseStringUTFChars(path, strPath);
+        if (image == NULL) {
+            throw_no_such_file_exception(env, path);
+            LOGES("Can\'t open bitmap", strPath);
+            return NULL;
+        }
     }
 
     jobject java_bitmap = NULL;
@@ -105,7 +140,12 @@ JNICALL Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecodePath
     }
 
     releaseImage(env);
-
+    if (memtif) {
+        delete (memtif);
+    }
+    if (bytes && tiffData) {
+        env->ReleaseByteArrayElements(bytes, tiffData, 0);
+    }
     return java_bitmap;
 }
 

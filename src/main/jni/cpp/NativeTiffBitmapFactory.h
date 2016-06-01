@@ -25,7 +25,10 @@ extern "C" {
  * Signature: (Ljava/lang/String;I)Landroid/graphics/Bitmap;
  */
 JNIEXPORT jobject JNICALL Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecodePath
-  (JNIEnv *, jclass, jstring, jobject);
+        (JNIEnv *, jclass, jstring, jobject);
+
+JNIEXPORT jobject JNICALL Java_org_beyka_tiffbitmapfactory_TiffBitmapFactory_nativeDecodeBytes
+        (JNIEnv *, jclass, jbyteArray, jobject);
 
 /*
  * Return count of directory in image
